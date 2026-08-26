@@ -2,7 +2,12 @@
 
 import json
 import pandas as pd
+from pathlib import Path
 
+# ETL project root
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+DATA_DIR = BASE_DIR / "data" / "raw"
 
 def load_orders():
     return pd.read_csv("data/raw/orders.csv")
@@ -21,14 +26,11 @@ def load_returns():
 
 
 def load_exchange_rates():
-    with open(
-        "data/raw/exchange_rates.json","r"
-    ) as file:
+    with open("data/raw/exchange_rates.json","r") as file:
         return json.load(file)
 
 
 def load_web_events():
-    with open(
-        "ETL/data/raw/web_events.log","r"
-    ) as file:
+    with open("data/raw/web_events.log","r") as file:
         return file.readlines()
+
