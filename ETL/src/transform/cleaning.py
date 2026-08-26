@@ -14,5 +14,4 @@ def clean_orders(orders_df):
         subset=["order_id"],
         keep="first"
     )
-
     return orders_df
