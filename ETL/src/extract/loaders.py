@@ -31,6 +31,14 @@ def load_exchange_rates():
 
 
 def load_web_events():
-    with open("data/raw/web_events.log","r") as file:
-        return file.readlines()
+
+    web_events = pd.read_csv("data/raw/web_events.log",sep="|",header=None,
+        names=["timestamp","session","customer_id","event","product"])
+
+    web_events["session"] = (web_events["session"].str.split("=").str[1].str.strip())
+    web_events["customer_id"] = (web_events["customer_id"].str.split("=").str[1].str.strip())
+    web_events["event"] = (web_events["event"].str.split("=").str[1].str.strip())
+    web_events["product"] = (web_events["product"].str.split("=").str[1].str.strip())
+
+    return web_events
 
