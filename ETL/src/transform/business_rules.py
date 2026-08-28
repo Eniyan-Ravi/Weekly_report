@@ -14,10 +14,10 @@ def apply_business_rules(orders_df,products_df):
     orders_df["total"] = (orders_df["quantity"] * orders_df["unit_price"])
 
     # discount_value
-    orders_df["discount_value"] = (orders_df["total"] * orders_df["discount"] / 100)
+    orders_df["discount_value"] = ((orders_df["total"] * orders_df["discount"] / 100)).round(2)
 
     # net_revenue
-    orders_df["net_revenue"] = (orders_df["total"] - orders_df["discount_value"]
+    orders_df["net_revenue"] = ((orders_df["total"] - orders_df["discount_value"]).round(2)
     )
 
     #12.price tier
