@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field, EmailStr
 from datetime import date
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+'''-----------------------------------------------------------------------'''    
 
 class UserBasic(BaseModel):
     name : str = Field(min_length=2,max_length=100)
@@ -11,7 +15,7 @@ class UserBasic(BaseModel):
 
 
 class UserCreate(UserBasic):
-    password : str = Field(min_length=5,max_length=100)
+    password : str = Field(min_length=2,max_length=100)
 
 
 class UserOut(UserBasic):
@@ -84,7 +88,6 @@ class SubscriptionBase(BaseModel):
 
 
 class SubscriptionCreate(SubscriptionBase):
-    user_id: int
     category_id: int
     payment_method_id: int
 
