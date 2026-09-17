@@ -4,31 +4,31 @@ import numpy as np
 from pathlib import Path
 
 
-INDEX_DIR = Path("index")
-INDEX_FILE = INDEX_DIR / "faiss.index"
-CHUNKS_FILE = INDEX_DIR / "chunks.pkl"
+index_dir = Path(__file__).parent / "index"
+index_file = index_dir / "faiss.index"
+chunks_file = index_dir / "chunks.pkl"
 
 
 def build_index(embeddings, chunks):
-    INDEX_DIR.mkdir(exist_ok=True)
+    index_dir.mkdir(exist_ok=True)
 
     embeddings = np.array(embeddings).astype("float32")
 
     index = faiss.IndexFlatL2(embeddings.shape[1])
     index.add(embeddings)
 
-    faiss.write_index(index, str(INDEX_FILE))
+    faiss.write_index(index, str(index_file))
 
-    with open(CHUNKS_FILE, "wb") as f:
+    with open(chunks_file, "wb") as f:
         pickle.dump(chunks, f)
 
     return index
 
 
 def load_index():
-    index = faiss.read_index(str(INDEX_FILE))
+    index = faiss.read_index(str(index_file))
 
-    with open(CHUNKS_FILE, "rb") as f:
+    with open(chunks_file, "rb") as f:
         chunks = pickle.load(f)
 
     return index, chunks
