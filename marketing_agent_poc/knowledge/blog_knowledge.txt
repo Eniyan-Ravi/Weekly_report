@@ -1,0 +1,6 @@
+AWS provides multiple capabilities for cloud cost optimization.
+Autoscaling allows organizations to adjust computing resources based on application demand.
+FinOps provides a framework for managing cloud costs while maintaining business value.
+Cost monitoring helps organizations identify unnecessary cloud expenditure and track resource usage.
+Reserved instances and savings plans let organizations commit to usage in exchange for lower rates.
+Right-sizing means matching instance types and sizes to actual workload performance needs.
