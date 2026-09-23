@@ -1,136 +1,235 @@
-from pydantic import (
-    BaseModel,
-    EmailStr,
-    Field,
-    ConfigDict
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException
+)
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.model import Customer
+
+from app.schema import (
+    CustomerRequest,
+    CustomerUpdate,
+    CustomerResponse,
+    LoginRequest
 )
 
 
-# =========================================================
-# CUSTOMER
-# =========================================================
+router = APIRouter(
+    prefix="/customers",
+    tags=["Customers"]
+)
 
-class CustomerRequest(BaseModel):
 
-    name: str = Field(
-        min_length=2,
-        max_length=100
+@router.post(
+    "/",
+    response_model=CustomerResponse
+)
+def create_customer(
+    customer_request: CustomerRequest,
+    db: Session = Depends(get_db)
+):
+
+    stmt = select(Customer).where(
+        Customer.email == customer_request.email
     )
 
-    email: EmailStr
+    existing = db.execute(
+        stmt
+    ).scalar_one_or_none()
 
-    password: str = Field(
-        min_length=4,
-        max_length=255
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+
+    customer = Customer(
+        **customer_request.model_dump()
     )
 
-    age: int = Field(
-        ge=13,
-        le=100
+    db.add(customer)
+    db.commit()
+    db.refresh(customer)
+
+    return customer
+
+
+@router.get(
+    "/",
+    response_model=list[CustomerResponse]
+)
+def get_customers(
+    db: Session = Depends(get_db)
+):
+
+    stmt = select(Customer)
+
+    result = db.execute(stmt)
+
+    return result.scalars().all()
+
+
+@router.get(
+    "/{customer_id}",
+    response_model=CustomerResponse
+)
+def get_customer(
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
+
+    stmt = select(Customer).where(
+        Customer.id == customer_id
     )
 
+    customer = db.execute(
+        stmt
+    ).scalar_one_or_none()
 
-class CustomerUpdate(BaseModel):
+    if customer is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
 
-    name: str = Field(
-        min_length=2,
-        max_length=100
+    return customer
+
+
+@router.put(
+    "/{customer_id}",
+    response_model=CustomerResponse
+)
+def update_customer(
+    customer_id: int,
+    customer_request: CustomerUpdate,
+    db: Session = Depends(get_db)
+):
+
+    stmt = select(Customer).where(
+        Customer.id == customer_id
     )
 
-    email: EmailStr
+    customer = db.execute(
+        stmt
+    ).scalar_one_or_none()
 
-    age: int = Field(
-        ge=13,
-        le=100
+    if customer is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
+
+    customer.name = customer_request.name
+    customer.email = customer_request.email
+    customer.age = customer_request.age
+
+    db.commit()
+    db.refresh(customer)
+
+    return customer
+
+
+@router.put(
+    "/{customer_id}/status",
+    response_model=CustomerResponse
+)
+def update_customer_status(
+    customer_id: int,
+    is_active: bool,
+    db: Session = Depends(get_db)
+):
+
+    stmt = select(Customer).where(
+        Customer.id == customer_id
     )
 
+    customer = db.execute(
+        stmt
+    ).scalar_one_or_none()
 
-class CustomerResponse(BaseModel):
+    if customer is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
 
-    model_config = ConfigDict(
-        from_attributes=True
+    customer.is_active = is_active
+
+    db.commit()
+    db.refresh(customer)
+
+    return customer
+
+
+@router.post("/login")
+def login(
+    login_request: LoginRequest,
+    db: Session = Depends(get_db)
+):
+
+    stmt = select(Customer).where(
+        Customer.email == login_request.email
     )
 
-    id: int
-    name: str
-    email: EmailStr
-    age: int
-    role: str
-    is_active: bool
+    customer = db.execute(
+        stmt
+    ).scalar_one_or_none()
+
+    if customer is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    # Temporary only.
+    # Hashing will be added later.
+
+    if customer.password != login_request.password:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid email or password"
+        )
+
+    if not customer.is_active:
+        raise HTTPException(
+            status_code=403,
+            detail="Customer account is inactive"
+        )
+
+    return {
+        "message": "Login successful",
+        "customer_id": customer.id,
+        "role": customer.role
+    }
 
 
-# =========================================================
-# CUSTOMER LOGIN
-# =========================================================
+@router.delete("/{customer_id}")
+def delete_customer(
+    customer_id: int,
+    db: Session = Depends(get_db)
+):
 
-class LoginRequest(BaseModel):
-
-    email: EmailStr
-
-    password: str
-
-
-# =========================================================
-# REVIEW
-# =========================================================
-
-class ReviewRequest(BaseModel):
-
-    game_name: str = Field(
-        min_length=1,
-        max_length=100
+    stmt = select(Customer).where(
+        Customer.id == customer_id
     )
 
-    customer_id: int = Field(
-        gt=0
-    )
+    customer = db.execute(
+        stmt
+    ).scalar_one_or_none()
 
-    rating: int = Field(
-        ge=1,
-        le=5
-    )
+    if customer is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found"
+        )
 
-    review: str = Field(
-        min_length=5,
-        max_length=500
-    )
+    db.delete(customer)
+    db.commit()
 
-    price: float = Field(
-        ge=0
-    )
-
-
-class ReviewUpdate(BaseModel):
-
-    game_name: str = Field(
-        min_length=1,
-        max_length=100
-    )
-
-    rating: int = Field(
-        ge=1,
-        le=5
-    )
-
-    review: str = Field(
-        min_length=5,
-        max_length=500
-    )
-
-    price: float = Field(
-        ge=0
-    )
-
-
-class ReviewResponse(BaseModel):
-
-    model_config = ConfigDict(
-        from_attributes=True
-    )
-
-    id: int
-    game_name: str
-    customer_id: int
-    rating: int
-    review: str
-    price: float
+    return {
+        "message": "Customer deleted successfully"
+    }

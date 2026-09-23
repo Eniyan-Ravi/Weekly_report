@@ -11,12 +11,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Online Game Review API",
-    description=(
-        "API for customer management, "
-        "game reviews and review analysis"
-    ),
-    version="1.0.0"
-)
+    description="API for customers and game reviews")
 
 
 app.include_router(customer_router)
@@ -25,15 +20,5 @@ app.include_router(review_router)
 
 @app.get("/")
 def root():
+    return {"message": "Online Game Review API is running"}
 
-    return {
-        "message": "Online Game Review API is running"
-    }
-
-
-@app.get("/health")
-def health_check():
-
-    return {
-        "status": "healthy"
-    }
