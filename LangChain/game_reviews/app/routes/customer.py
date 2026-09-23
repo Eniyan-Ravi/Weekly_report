@@ -1,85 +1,136 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
-from app.database import get_db
-from app.model import Customer
-from app.schema import CustomerRequest
-
-
-router = APIRouter(
-    prefix="/customers",
-    tags=["Customers"]
+from pydantic import (
+    BaseModel,
+    EmailStr,
+    Field,
+    ConfigDict
 )
 
 
-@router.post("/")
-def create_customer(customer_request: CustomerRequest,db: Session = Depends(get_db)):
+# =========================================================
+# CUSTOMER
+# =========================================================
 
-    stmt = select(Customer).where(Customer.email == customer_request.email)
+class CustomerRequest(BaseModel):
 
-    existing_customer = db.execute(stmt).scalar_one_or_none()
+    name: str = Field(
+        min_length=2,
+        max_length=100
+    )
 
-    if existing_customer:
-        raise HTTPException(status_code=400,detail="Email already registered")
+    email: EmailStr
 
-    customer = Customer(**customer_request.model_dump())
-    db.add(customer)
-    db.commit()
-    db.refresh(customer)
-    return customer
+    password: str = Field(
+        min_length=4,
+        max_length=255
+    )
 
-
-@router.get("/")
-def get_customers(db: Session = Depends(get_db)):
-    stmt = select(Customer)
-    result = db.execute(stmt)
-    return result.scalars().all()
-
-@router.get("/{customer_id}")
-def get_customer(customer_id: int,db: Session = Depends(get_db)):
-
-    stmt = select(Customer).where(Customer.id == customer_id)
-
-    customer = db.execute(stmt).scalar_one_or_none()
-
-    if customer is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Customer not found"
-        )
-
-    return customer
+    age: int = Field(
+        ge=13,
+        le=100
+    )
 
 
-@router.put("/{customer_id}")
-def update_customer(customer_id: int,customer_request: CustomerRequest,db: Session = Depends(get_db)):
+class CustomerUpdate(BaseModel):
 
-    stmt = select(Customer).where(Customer.id == customer_id)
+    name: str = Field(
+        min_length=2,
+        max_length=100
+    )
 
-    customer = db.execute(stmt).scalar_one_or_none()
+    email: EmailStr
 
-    if customer is None:
-        raise HTTPException(status_code=404,detail="Customer not found")
-    customer.name = customer_request.name
-    customer.email = customer_request.email
-    customer.age = customer_request.age
-    db.commit()
-    db.refresh(customer)
-    return customer
+    age: int = Field(
+        ge=13,
+        le=100
+    )
 
 
-@router.delete("/{customer_id}")
-def delete_customer(customer_id: int,db: Session = Depends(get_db)):
+class CustomerResponse(BaseModel):
 
-    stmt = select(Customer).where(Customer.id == customer_id)
-    customer = db.execute(stmt).scalar_one_or_none()
+    model_config = ConfigDict(
+        from_attributes=True
+    )
 
-    if customer is None:
-        raise HTTPException(status_code=404,detail="Customer not found")
-    db.delete(customer)
-    db.commit()
+    id: int
+    name: str
+    email: EmailStr
+    age: int
+    role: str
+    is_active: bool
 
-    return {
-        "message": "Customer deleted successfully"
-    }
+
+# =========================================================
+# CUSTOMER LOGIN
+# =========================================================
+
+class LoginRequest(BaseModel):
+
+    email: EmailStr
+
+    password: str
+
+
+# =========================================================
+# REVIEW
+# =========================================================
+
+class ReviewRequest(BaseModel):
+
+    game_name: str = Field(
+        min_length=1,
+        max_length=100
+    )
+
+    customer_id: int = Field(
+        gt=0
+    )
+
+    rating: int = Field(
+        ge=1,
+        le=5
+    )
+
+    review: str = Field(
+        min_length=5,
+        max_length=500
+    )
+
+    price: float = Field(
+        ge=0
+    )
+
+
+class ReviewUpdate(BaseModel):
+
+    game_name: str = Field(
+        min_length=1,
+        max_length=100
+    )
+
+    rating: int = Field(
+        ge=1,
+        le=5
+    )
+
+    review: str = Field(
+        min_length=5,
+        max_length=500
+    )
+
+    price: float = Field(
+        ge=0
+    )
+
+
+class ReviewResponse(BaseModel):
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
+
+    id: int
+    game_name: str
+    customer_id: int
+    rating: int
+    review: str
+    price: float
