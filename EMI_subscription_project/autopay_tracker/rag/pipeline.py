@@ -10,7 +10,7 @@ from rag.retrieval.keyword_search import build_bm25_index
 from rag.tools.tool_definitions import tool_definitions, tool_function_map
 
 ENV_PATH = Path(__file__).parent / ".env"
-load_dotenv(dotenv_path=ENV_PATH)
+load_dotenv()
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 MODEL_NAME = "openai/gpt-oss-120b"
@@ -79,7 +79,7 @@ def answer_question(question: str, db, current_user, top_k: int = 3) -> str:
                 "content": json.dumps(result),
             })
 
-            second_response = client.chat.completions.create(
+        second_response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
             tools=tool_definitions,
@@ -89,3 +89,37 @@ def answer_question(question: str, db, current_user, top_k: int = 3) -> str:
         return second_response.choices[0].message.content
 
     return response_message.content
+
+if __name__ == "__main__":
+    from app.database import SessionLocal
+    from app.models import User
+    from sqlalchemy import select
+    from app.security import verify_password
+
+    db = SessionLocal()
+
+    email = input("Email: ").strip()
+    password = input("Password: ").strip()
+
+    user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+
+    if user is None or not verify_password(password, user.hashed_password):
+        print("Invalid email or password.")
+        db.close()
+        exit()
+
+    print(f"\nLogged in as {user.name}. Type 'exit' to quit.\n")
+
+    while True:
+        question = input("You: ").strip()
+
+        if question.lower() in ("exit", "quit"):
+            break
+
+        if not question:
+            continue
+
+        answer = answer_question(question, db, user)
+        print(f"\nAssistant: {answer}\n")
+
+    db.close()
