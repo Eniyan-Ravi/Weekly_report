@@ -1,0 +1,55 @@
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+
+
+# State
+class State(TypedDict):
+    number: int
+
+# Node
+def increase_number(state: State):
+    number = state["number"] + 1
+
+    print("Current number:", number)
+
+    return {
+        "number": number
+    }
+
+
+# Conditional routing
+def check_number(state: State):
+
+    if state["number"] >= 5:
+        return "done"
+
+    return "continue"
+
+
+# Create graph
+graph = StateGraph(State)
+graph.add_node("increase", increase_number)
+
+
+# START → increase
+graph.add_edge(START, "increase")
+
+
+# Conditional routing
+graph.add_conditional_edges(
+    "increase",
+    check_number,
+    {
+        "done": END,
+        "continue": "increase"
+    }
+)
+
+# Compile
+app = graph.compile()
+
+result = app.invoke({
+    "number": 0
+})
+
+print("Final number:", result["number"])

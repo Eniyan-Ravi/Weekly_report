@@ -1,0 +1,72 @@
+from typing import TypedDict
+from langgraph.graph import StateGraph, START, END
+from langchain_groq import ChatGroq
+
+
+# 1. LLM
+llm = ChatGroq(
+    model="openai/gpt-oss-20b"
+)
+
+
+#State
+class State(TypedDict):
+    question: str
+    answer: str
+
+
+#LLM Node
+def generate_answer(state: State):
+
+    prompt = f"""
+    Answer this question in a useful way:
+
+    {state["question"]}
+    """
+
+    response = llm.invoke(prompt)
+
+    return {
+        "answer": response.content
+    }
+
+
+#Conditional Node
+def check_answer(state: State):
+    answer = state["answer"]
+    if len(answer) >= 100:
+        return "good"
+    return "retry"
+
+
+#Create Graph
+graph = StateGraph(State)
+graph.add_node("generate", generate_answer)
+
+# START → generate
+graph.add_edge(START, "generate")
+
+# generate → check
+graph.add_conditional_edges(
+    "generate",
+    check_answer,
+    {
+        "good": END,
+        "retry": "generate"
+    }
+)
+
+
+#Compile
+app = graph.compile()
+
+
+#User Input
+question = input("Enter your question: ")
+result = app.invoke({
+    "question": question,
+    "answer": ""
+})
+
+print("\nAnswer:")
+print(result["answer"])
