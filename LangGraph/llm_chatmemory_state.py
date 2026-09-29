@@ -12,6 +12,7 @@ from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, START, END, MessagesState
 from langgraph.prebuilt import ToolNode
 from langgraph.checkpoint.memory import InMemorySaver
+from sympy import true
 
 
 BASE_DIR = Path(__file__).parent
