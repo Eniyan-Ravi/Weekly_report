@@ -11,7 +11,7 @@ from langchain_core.tools import StructuredTool
 
 load_dotenv()
 
-
+ 
 async def main():
     #Start MCP server
     server_params = StdioServerParameters(
@@ -50,19 +50,7 @@ async def main():
             )
 
             langchain_tools.append(tool)
-        #Create LLM
 
-        llm = ChatGroq(
-            model="openai/gpt-oss-20b",
-            temperature=0,
-        )
-
-        #tools to LLM
-        llm_with_tools = llm.bind_tools(
-            langchain_tools
-        )
-
-        #User request
 
         user_request = input("\nEnter your request: ")
 
@@ -76,6 +64,6 @@ async def main():
         print("\nTool calls:")
         print(response.tool_calls)
 
-
+ 
 if __name__ == "__main__":
     asyncio.run(main())
