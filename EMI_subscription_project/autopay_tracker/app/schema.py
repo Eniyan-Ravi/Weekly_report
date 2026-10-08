@@ -120,7 +120,6 @@ class EMIBase(BaseModel):
 
 
 class EMICreate(EMIBase):
-    user_id: int
     category_id: int
     payment_method_id: int
 
