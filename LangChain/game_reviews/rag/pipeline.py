@@ -1,18 +1,37 @@
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_groq import ChatGroq
 from langchain_core.tools import StructuredTool
+
 from langchain.agents import create_agent
-from app.tools.db_tools import get_customers,get_customer,get_reviews,get_review
+
+from app.tools.db_tools import (
+    get_customers,
+    get_customer,
+    get_reviews,
+    get_review
+)
+
 from dotenv import load_dotenv
 from collections import deque
 
+
+# Load environment variables
 load_dotenv()
 
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+
+# --------------------------------------------------
+# Embeddings
+# --------------------------------------------------
+
+embeddings = FastEmbedEmbeddings(
+    model_name="BAAI/bge-small-en-v1.5"
 )
 
+
+# --------------------------------------------------
+# FAISS Vector Store
+# --------------------------------------------------
 
 vector_store = FAISS.load_local(
     "rag/faiss_index",
@@ -21,13 +40,20 @@ vector_store = FAISS.load_local(
 )
 
 
+# --------------------------------------------------
+# Retriever
+# --------------------------------------------------
+
 retriever = vector_store.as_retriever(
     search_kwargs={"k": 3}
 )
 
 
+# --------------------------------------------------
+# Document Search Tool
+# --------------------------------------------------
+
 def search_documents(query: str) -> str:
-    """Search the game review documents for relevant information."""
 
     documents = retriever.invoke(query)
 
@@ -40,12 +66,23 @@ def search_documents(query: str) -> str:
     )
 
 
+# --------------------------------------------------
+# RAG Tool
+# --------------------------------------------------
+
 rag_tool = StructuredTool.from_function(
     func=search_documents,
     name="search_documents",
-    description="Search the game review documents for information about games, ratings, reviews, and other documented information."
+    description=(
+        "Search the game review documentation "
+        "and return relevant information."
+    )
 )
 
+
+# --------------------------------------------------
+# Database Tools
+# --------------------------------------------------
 
 customers_tool = StructuredTool.from_function(
     func=get_customers,
@@ -53,29 +90,41 @@ customers_tool = StructuredTool.from_function(
     description="Get all customers from the database."
 )
 
-
 customer_tool = StructuredTool.from_function(
     func=get_customer,
     name="get_customer",
-    description="Get one customer using their customer ID."
+    description="Get a specific customer from the database."
 )
-
 
 reviews_tool = StructuredTool.from_function(
     func=get_reviews,
     name="get_reviews",
-    description="Get all game reviews from the database."
+    description="Get game reviews from the database."
 )
-
 
 review_tool = StructuredTool.from_function(
     func=get_review,
     name="get_review",
-    description="Get one game review using its review ID."
+    description="Get a specific game review from the database."
 )
 
 
-tools = [rag_tool,customers_tool,customer_tool,reviews_tool,review_tool]
+# --------------------------------------------------
+# Tools
+# --------------------------------------------------
+
+tools = [
+    rag_tool,
+    customers_tool,
+    customer_tool,
+    reviews_tool,
+    review_tool
+]
+
+
+# --------------------------------------------------
+# LLM
+# --------------------------------------------------
 
 llm = ChatGroq(
     model="openai/gpt-oss-120b",
@@ -83,34 +132,50 @@ llm = ChatGroq(
 )
 
 
+# --------------------------------------------------
+# System Prompt
+# --------------------------------------------------
+
 system_prompt = """
 You are an assistant for an online game review system.
 
-You have access to:
-1. A document search tool for game review documents.
-2. Database tools for customer and review information.
+Use the document search tool when the user asks
+about information contained in the documentation.
 
-Use the document search tool when the question requires information
-from the documents.
+Use the database tools when the user asks about
+actual customer or review data.
 
-Use database tools when the user asks for actual customer or
-review data from the database.
+You may use multiple tools when necessary.
 
-You can use multiple tools when required.
+Do not invent customer or review information.
 
-Do not invent or modify database information.
+Do not modify the database.
 
-Answer the user's question directly and concisely.
-Do not add unnecessary explanations or information that was not asked for.
+Keep answers concise and accurate.
 """
 
+
+# --------------------------------------------------
+# Conversation History
+# --------------------------------------------------
+
 chat_history = deque(maxlen=10)
+
+
+# --------------------------------------------------
+# Agent
+# --------------------------------------------------
 
 agent = create_agent(
     model=llm,
     tools=tools,
-    system_prompt=system_prompt)
+    system_prompt=system_prompt
+)
 
+
+# --------------------------------------------------
+# Main RAG Function
+# --------------------------------------------------
 
 def answer_question(question: str) -> str:
 
@@ -130,13 +195,14 @@ def answer_question(question: str) -> str:
     return assistant_message.content
 
 
+# --------------------------------------------------
+# CLI
+# --------------------------------------------------
+
 if __name__ == "__main__":
+    import time
+
+    print("RAG service started.")
+
     while True:
-        question = input("\nAsk your question (type 'exit' to quit): ")
-        if question.lower() == "exit":
-            break
-
-        answer = answer_question(question)
-
-        print("\nAnswer:")
-        print(answer)
+        time.sleep(3600)

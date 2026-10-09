@@ -1,19 +1,19 @@
 from langchain_community.document_loaders import TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.embeddings import FastEmbedEmbeddings
 from langchain_community.vectorstores import FAISS
 
-#loaging
+
+# Load document
 loader = TextLoader(
-    "data/game_reviews.md",
+    "rag/data/game_reviews.md",
     encoding="utf-8"
 )
 
 documents = loader.load()
 
-print(f"Loaded documents: {len(documents)}")
 
-#spelitting
+# Split document into chunks
 splitter = RecursiveCharacterTextSplitter(
     chunk_size=500,
     chunk_overlap=50
@@ -21,24 +21,21 @@ splitter = RecursiveCharacterTextSplitter(
 
 chunks = splitter.split_documents(documents)
 
-print(f"Created chunks: {len(chunks)}")
 
-#embedding
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
+# Create lightweight embeddings
+embeddings = FastEmbedEmbeddings(
+    model_name="BAAI/bge-small-en-v1.5"
 )
 
 
-#fiass vector store
+# Create FAISS vector store
 vector_store = FAISS.from_documents(
     chunks,
     embeddings
 )
 
-print("FAISS vector store created")
 
+# Save vector store
+vector_store.save_local("rag/faiss_index")
 
-#fiass index
-vector_store.save_local("faiss_index")
-
-print("FAISS index saved successfully")
+print("FAISS index created successfully.")

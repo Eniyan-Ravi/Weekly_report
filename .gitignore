@@ -4,3 +4,17 @@ __pycache__/
 *.pyc
 .venv/
 *.db
+# Docker
+Dockerfile
+Dockerfile.*
+docker-compose.yml
+docker-compose.yaml
+compose.yml
+compose.yaml
+.dockerignore
+requirements.txt
+**/requirements.txt
+requirements/**.txt
+requirements.fastapi.txt
+requirements.rag.txt
+requirements-rag.txt

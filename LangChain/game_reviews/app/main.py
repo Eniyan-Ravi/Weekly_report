@@ -22,3 +22,6 @@ app.include_router(review_router)
 def root():
     return {"message": "Online Game Review API is running"}
 
+@app.get("/version")
+def get_version():
+    return {"version": "1.1"}
